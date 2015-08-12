@@ -28,6 +28,7 @@ import android.view.animation.AnimationUtils;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.ScaleAnimation;
 import android.widget.FrameLayout;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 
@@ -63,6 +64,7 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
     private ImageView frontImage;
     private ImageView backImage;
     private ImageView thirdImage;
+    private ImageButton btnLand;
     private ObjectAnimator backAnimator;
     private int backHeight;
     private int frontHeight;
@@ -83,6 +85,7 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
         screenHeight = wm.getDefaultDisplay().getHeight();
         setContentView(R.layout.activity_main);
         frontImage = (ImageView) findViewById(R.id.iv_front);
+        btnLand = (ImageButton)findViewById(R.id.btn_land);
         frontImage.setTag("最原始的Front");
         frontImage.setScaleType(ImageView.ScaleType.MATRIX);
         backImage = (ImageView) findViewById(R.id.iv_back);
@@ -94,31 +97,30 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
         picList.add(R.drawable.pic4);
         picList.add(R.drawable.pic5);
 
-        CPoint p0 = new CPoint(268, 396);
-        CPoint p1 = new CPoint(281, 448);
-        CPoint p3 = new CPoint(292, 473);
-        //CPoint p2 = new CPoint(293, 478);
-        CPoint p2 = new CPoint(245, 478);
-        CPoint p6 = new CPoint(368, 598);
-        CPoint p4 = new CPoint(330, 550);
-        CPoint p5 = new CPoint(409, 652);
-        CPoint p8 = new CPoint(389, 1014);
-        CPoint p7 = new CPoint(427, 722);
-        CPoint p9 = new CPoint(414, 822);
-        CPoint p10 = new CPoint(384, 846);
-
-//        List<CPoint> centralPointList = new ArrayList<CPoint>();
-//        centralPointList.add(new CPoint(293,577));
-//        centralPointList.add(new CPoint(462, 423));
-//        centralPointList.add(new CPoint(293, 472));
-//        centralPointList.add(new CPoint(778, 484));
-//        centralPointList.add(new CPoint(264, 264));
+//        CPoint p0 = new CPoint(268, 396);
+//        CPoint p1 = new CPoint(281, 448);
+//        //CPoint p2 = new CPoint(293, 478);
+//        CPoint p2 = new CPoint(245, 478);
+//        CPoint p3 = new CPoint(292, 473);
+//        CPoint p4 = new CPoint(330, 550);
+//        CPoint p5 = new CPoint(409, 652);
+//        CPoint p6 = new CPoint(368, 598);
+//        CPoint p7 = new CPoint(427, 722);
+//        CPoint p8 = new CPoint(389, 1014);
+//        CPoint p9 = new CPoint(414, 822);
+//        CPoint p10 = new CPoint(384, 846);
+        CPoint p0 = new CPoint(dp2Px(143), dp2Px(211));
+        CPoint p1 = new CPoint(dp2Px(150), dp2Px(239));
+        CPoint p2 = new CPoint(dp2Px(131), dp2Px(255));
+        CPoint p3 = new CPoint(dp2Px(156), dp2Px(252));
+        CPoint p4 = new CPoint(dp2Px(176), dp2Px(293));
+        CPoint p6 = new CPoint(dp2Px(196), dp2Px(319));
+        CPoint p7 = new CPoint(dp2Px(228), dp2Px(385));
+        CPoint p8 = new CPoint(dp2Px(207), dp2Px(541));
+        CPoint p9 = new CPoint(dp2Px(221), dp2Px(438));
+        CPoint p10 = new CPoint(dp2Px(205), dp2Px(451));
         endPoint = p10;
         Path path = new Path();
-        Path path2 = new Path();
-        Path path3 = new Path();
-        Path path4 = new Path();
-        Path path5 = new Path();
         List<CPoint> points = new ArrayList<CPoint>();
         points.add(p0);
         points.add(p1);
@@ -127,8 +129,13 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
         points.add(p4);
         points.add(p6);
         points.add(p7);
+        //points.add(p8);
         points.add(p9);
         points.add(p10);
+        for(int i=0;i<points.size();i++){
+            CPoint point = points.get(i);
+            Log.i("MainActivity", "p"+i+".x="+px2Dp(point.x)+", p"+i+".y="+px2Dp(point.y));
+        }
         PathUtil.drawPath(path, points, 0.2f);
         pathMeasure = new PathMeasure(path, false);
         mViewPager = (ViewPager) findViewById(R.id.vp_container);
@@ -142,7 +149,7 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
         mViewPager.setAdapter(adapter);
         mViewPager.addOnPageChangeListener(this);
         backImage.setImageResource(picList.get(0));
-        interpolated = .99869794f;
+        interpolated = 1.0f;
         mMatrix = new Matrix(backImage.getImageMatrix());
         mMatrix.setScale(1.0f, 1.0f);
         backImage.setImageMatrix(mMatrix);
@@ -152,14 +159,11 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
         FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) backImage.getLayoutParams();
         layoutParams.height = (int) (bitmap.getHeight() * 1.0f);
         layoutParams.width = (int) (bitmap.getWidth() * 1.0f);
-//        Log.i("MainActivity", "Layout.height=" + layoutParams.height + ", Layout.width=" + layoutParams.width);
         backImage.setLayoutParams(layoutParams);
         backImage.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             boolean isFirst = true;//默认调用两次，这里只让它执行一次回调
-
             @Override
             public void onGlobalLayout() {
-                Log.i("MainActivity", "view变化， backX=" + backImage.getX() + ", backY=" + backImage.getY());
                 if (isFirst) {
                     isFirst = false;
                     pathMeasure.getPosTan(pathMeasure.getLength() * interpolated, pos, null);
@@ -215,10 +219,6 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
     @Override
     public void onPageSelected(int position) {
         isChange = true;
-
-        Log.i("MainActivity", "BackImage x=" + backImage.getX() + ", BackImage y=" + backImage.getY());
-
-        Log.i("MainActivity", "onPageSelected position=" + position);
     }
 
     @Override
@@ -228,9 +228,7 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
                 backAnimator.cancel();
             }
         } else if (state == 0 && isChange) {
-
-                Log.i("MainActivity", "Left ======Left====");
-                setCoords(frontImage, endPoint.x, endPoint.y);
+             setCoords(frontImage, endPoint.x, endPoint.y);
                 float y = frontImage.getY();
                 backAnimator = ObjectAnimator.ofFloat(frontImage, "y", y - 10, y + 10);
                 backAnimator.setDuration(DURATION);
@@ -252,14 +250,8 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
         //计算根据中心点坐标计算左上角的坐标点
         float ltx = x - view.getMeasuredWidth() / 2;
         float lty = y - view.getMeasuredHeight() / 2;
-        Log.i("MainActivity", "ltx=" + ltx + ", lty=" + lty);
         view.setX(ltx);
         view.setY(lty);
-    }
-
-    public void setCoords(ImageView view, float x, float y, float dx, float dy) {
-        view.setX(x - dx);
-        view.setY(y - dy);
     }
 
     /**
@@ -268,16 +260,15 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
     private void moveToLeft(float positionOffset, int position) {
         interpolated = positionOffset;
         if (interpolated < 1 && interpolated > 0.0f) {
-            Log.i("MainActivity", "interpolated=" + interpolated);
+            Log.i("MainActivity", "position="+position);
+            if(position == 3 && interpolated>0.9){
+                btnLand.setVisibility(View.VISIBLE);
+            }
             if (position < picList.size() - 1) {
                 frontImage.setImageResource(picList.get(position + 1));
             }
             mMatrix = new Matrix(frontImage.getImageMatrix());
-            if (interpolated < 0.9) {
-                mMatrix.setScale(interpolated * interpolated, interpolated * interpolated);
-            } else {
-                mMatrix.setScale(1.0f, 1.0f);
-            }
+            mMatrix.setScale(interpolated * interpolated, interpolated * interpolated);
             frontImage.setImageMatrix(mMatrix);
             frontImage.setAlpha(0.7f + interpolated);
             frontImage.setDrawingCacheEnabled(true);
@@ -285,13 +276,8 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
             Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
             frontImage.setDrawingCacheEnabled(false);
             FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) frontImage.getLayoutParams();
-            if (interpolated < 0.9) {
-                layoutParams.height = (int) (bitmap.getHeight() * interpolated * interpolated);
-                layoutParams.width = (int) (bitmap.getWidth() * interpolated * interpolated);
-            } else {
-                layoutParams.height = (int) (bitmap.getHeight() * 1);
-                layoutParams.width = (int) (bitmap.getWidth() * 1);
-            }
+            layoutParams.height = (int) (bitmap.getHeight() * interpolated * interpolated);
+            layoutParams.width = (int) (bitmap.getWidth() * interpolated * interpolated);
             frontImage.setLayoutParams(layoutParams);
             pathMeasure.getPosTan(pathMeasure.getLength() * interpolated, pos, null);
             setCoords(frontImage, pos[0], pos[1]);
@@ -301,32 +287,34 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
 
     protected void moveToRight(float positionOffset, int position) {
         interpolated = 1-positionOffset;
-        Log.i("MainActivity", "interpolated=" + interpolated);
         if (interpolated < 1 && interpolated > .0f) {
             if(position>=0) {
                 frontImage.setImageResource(picList.get(position));
             }
+            if(position == 4 && interpolated<0.9){
+                btnLand.setVisibility(View.INVISIBLE);
+            }
+            mMatrix = new Matrix(frontImage.getImageMatrix());
+            mMatrix.setScale(1.0f, 1.0f);
+            frontImage.setImageMatrix(mMatrix);
+            frontImage.setDrawingCacheEnabled(true);
+            Drawable drawable = frontImage.getDrawable();
+            Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
+            frontImage.setDrawingCacheEnabled(false);
+            frontImage.setAlpha(1.0f);
+            FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) frontImage.getLayoutParams();
+            layoutParams.height = (int) (bitmap.getHeight());
+            layoutParams.width = (int) (bitmap.getWidth());
+            frontImage.setLayoutParams(layoutParams);
             mMatrix = new Matrix(backImage.getImageMatrix());
-//        if (interpolated > 0.9) {
-//            mMatrix.setScale(1-interpolated * interpolated, 1-interpolated * interpolated);
-//        } else {
-//            mMatrix.setScale(1.0f, 1.0f);
-//        }
             mMatrix.setScale((1 - interpolated) * (1-interpolated), (1 - interpolated) * (1-interpolated));
             backImage.setImageMatrix(mMatrix);
             backImage.setAlpha(0.7f + (1 - interpolated));
             backImage.setDrawingCacheEnabled(true);
-            Drawable drawable = backImage.getDrawable();
-            Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
+            drawable = backImage.getDrawable();
+            bitmap = ((BitmapDrawable) drawable).getBitmap();
             backImage.setDrawingCacheEnabled(false);
-            FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) backImage.getLayoutParams();
-//        if (interpolated < 0.9) {
-//            layoutParams.height = (int) (bitmap.getHeight() * interpolated * interpolated);
-//            layoutParams.width = (int) (bitmap.getWidth() * interpolated * interpolated);
-//        } else {
-//            layoutParams.height = (int) (bitmap.getHeight() * 1);
-//            layoutParams.width = (int) (bitmap.getWidth() * 1);
-//        }
+            layoutParams = (FrameLayout.LayoutParams) backImage.getLayoutParams();
             layoutParams.height = (int) (bitmap.getHeight() * (1 - interpolated) * (1-interpolated));
             layoutParams.width = (int) (bitmap.getWidth() * (1 - interpolated) * (1-interpolated));
             backImage.setLayoutParams(layoutParams);
@@ -334,5 +322,15 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
             setCoords(backImage, pos[0], pos[1]);
             setCoords(frontImage, endPoint.x, endPoint.y + (screenHeight - endPoint.y + frontHeight / 2) * 1.5f * (1 - interpolated) * (1-interpolated));
         }
+    }
+
+    protected int dp2Px(float dp){
+        float scale = getResources().getDisplayMetrics().density;
+        return (int)(dp*scale+.5f);
+    }
+
+    protected int px2Dp(float px){
+        float scale = getResources().getDisplayMetrics().density;
+        return (int)(px/scale+.5f);
     }
 }

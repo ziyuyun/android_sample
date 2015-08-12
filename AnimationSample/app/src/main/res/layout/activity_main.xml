@@ -45,6 +45,16 @@
         android:scaleType="fitXY"
         android:src="@drawable/background"
         />
+    <ImageButton
+        android:id="@+id/btn_land"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/btn_land"
+        android:layout_gravity="center"
+        android:background="@null"
+        android:layout_marginTop="80dp"
+        android:visibility="invisible"
+        />
 
     <ImageView
         android:layout_width="match_parent"

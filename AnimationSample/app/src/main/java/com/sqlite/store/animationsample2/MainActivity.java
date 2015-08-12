@@ -58,11 +58,16 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
 
     private boolean left = false;
     private boolean right = false;
-    private boolean isScrolling = false;
+    private float startX;
 
     private ImageView frontImage;
     private ImageView backImage;
+    private ImageView thirdImage;
     private ObjectAnimator backAnimator;
+    private int backHeight;
+    private int frontHeight;
+    private boolean isChange = false;
+    private int lastValue;
 
     private GestureDetector mGestureDetector;
     List<Integer> picList = new ArrayList<Integer>();
@@ -78,9 +83,11 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
         screenHeight = wm.getDefaultDisplay().getHeight();
         setContentView(R.layout.activity_main);
         frontImage = (ImageView) findViewById(R.id.iv_front);
+        frontImage.setTag("最原始的Front");
         frontImage.setScaleType(ImageView.ScaleType.MATRIX);
         backImage = (ImageView) findViewById(R.id.iv_back);
         backImage.setScaleType(ImageView.ScaleType.MATRIX);
+        backImage.setTag("最原始的Back");
         picList.add(R.drawable.pic1);
         picList.add(R.drawable.pic2);
         picList.add(R.drawable.pic3);
@@ -149,100 +156,183 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
         backImage.setLayoutParams(layoutParams);
         backImage.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             boolean isFirst = true;//默认调用两次，这里只让它执行一次回调
+
             @Override
             public void onGlobalLayout() {
+                Log.i("MainActivity", "view变化， backX=" + backImage.getX() + ", backY=" + backImage.getY());
                 if (isFirst) {
                     isFirst = false;
-                    pathMeasure.getPosTan(pathMeasure.getLength()*interpolated, pos, null);
+                    pathMeasure.getPosTan(pathMeasure.getLength() * interpolated, pos, null);
                     //现在布局全部完成，可以获取到任何View组件的宽度、高度、左边、右边等信息
                     setCoords(backImage, endPoint.x, endPoint.y);
-                    backImage.requestLayout();
                     float y = backImage.getY();
                     backAnimator = ObjectAnimator.ofFloat(backImage, "y", y - 10, y + 10);
                     backAnimator.setDuration(DURATION);
                     backAnimator.setRepeatMode(ValueAnimator.REVERSE);
                     backAnimator.setRepeatCount(ValueAnimator.INFINITE);
                     backAnimator.start();
+                    backHeight = backImage.getHeight();
                 }
             }
         });
-        //setCoords(backImage, endPoint.x, endPoint.y);
-        //setCoords(backImage, endPoint.x, endPoint.y, layoutParams.width/2, layoutParams.height/2);
-
+        mViewPager.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        startX = event.getX();
+                        break;
+                    case MotionEvent.ACTION_MOVE:
+                        float endX = event.getX();
+                        if (endX > startX) {
+                            right = true;
+                            left = false;
+                        } else if (endX < startX) {
+                            right = false;
+                            left = true;
+                        } else {
+                            left = right = false;
+                        }
+                        break;
+                    case MotionEvent.ACTION_UP:
+                        break;
+                }
+                return false;
+            }
+        });
     }
 
     @Override
     public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-        interpolated = positionOffset;
-//        Log.i("MainActivity", "interpolated=" + interpolated);
-            if (interpolated < 1 && interpolated > 0.0f) {
-                if (position < picList.size() - 1) {
-                    frontImage.setImageResource(picList.get(position + 1));
-                }
-                mMatrix = new Matrix(frontImage.getImageMatrix());
-                if(interpolated<0.9) {
-                    mMatrix.setScale(interpolated * interpolated, interpolated * interpolated);
-                }else{
-                    mMatrix.setScale(1.0f, 1.0f);
-                }
-                frontImage.setImageMatrix(mMatrix);
-                frontImage.setAlpha(0.3f+interpolated);
-                frontImage.setDrawingCacheEnabled(true);
-                Drawable drawable = frontImage.getDrawable();
-                Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
-                frontImage.setDrawingCacheEnabled(false);
-                FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) frontImage.getLayoutParams();
-                if(interpolated<0.9){
-                    layoutParams.height = (int) (bitmap.getHeight() * interpolated*interpolated);
-                    layoutParams.width = (int) (bitmap.getWidth() * interpolated*interpolated);
-                }else{
-                    layoutParams.height = (int) (bitmap.getHeight() * 1);
-                    layoutParams.width = (int) (bitmap.getWidth() * 1);
-                }
-//                Log.i("MainActivity", "Layout.height=" + layoutParams.height + ", Layout.width=" + layoutParams.width);
-                frontImage.setLayoutParams(layoutParams);
-                pathMeasure.getPosTan(pathMeasure.getLength() * interpolated, pos, null);
-                setCoords(frontImage, pos[0], pos[1]);
-                if(backAnimator.isRunning()){
-                    backAnimator.cancel();
-                }
-                FrameLayout.LayoutParams backLayoutParams = (FrameLayout.LayoutParams) backImage.getLayoutParams();
-                backLayoutParams.topMargin = (int)(backImage.getHeight()*interpolated*interpolated);
-            }else{
-
-            }
+        if (right) {
+            Log.i("MainActivity", "向右滑动");
+            moveToRight(positionOffset, position);
+        } else if (left) {
+            moveToLeft(positionOffset, position);
+        }
     }
 
     @Override
     public void onPageSelected(int position) {
+        isChange = true;
 
+        Log.i("MainActivity", "BackImage x=" + backImage.getX() + ", BackImage y=" + backImage.getY());
+
+        Log.i("MainActivity", "onPageSelected position=" + position);
     }
 
     @Override
     public void onPageScrollStateChanged(int state) {
-        if(state == 0){
-            float y = frontImage.getY();
-            ObjectAnimator animator = ObjectAnimator.ofFloat(frontImage, "y", y - 10, y + 10);
-            animator.setDuration(DURATION);
-            animator.setRepeatMode(ValueAnimator.REVERSE);
-            animator.setRepeatCount(ValueAnimator.INFINITE);
-            animator.start();
+        if (state == 1) {
+            if (backAnimator.isRunning()) {
+                backAnimator.cancel();
+            }
+        } else if (state == 0 && isChange) {
+
+                Log.i("MainActivity", "Left ======Left====");
+                setCoords(frontImage, endPoint.x, endPoint.y);
+                float y = frontImage.getY();
+                backAnimator = ObjectAnimator.ofFloat(frontImage, "y", y - 10, y + 10);
+                backAnimator.setDuration(DURATION);
+                backAnimator.setRepeatMode(ValueAnimator.REVERSE);
+                backAnimator.setRepeatCount(ValueAnimator.INFINITE);
+                backAnimator.start();
+                isChange = false;
+                frontHeight = frontImage.getHeight();
+                backHeight = backImage.getHeight();
+                ImageView tempImage;
+                tempImage = backImage;
+                backImage = frontImage;
+                frontImage = tempImage;
+
         }
     }
 
     public void setCoords(ImageView view, float x, float y) {
-
         //计算根据中心点坐标计算左上角的坐标点
         float ltx = x - view.getMeasuredWidth() / 2;
         float lty = y - view.getMeasuredHeight() / 2;
+        Log.i("MainActivity", "ltx=" + ltx + ", lty=" + lty);
         view.setX(ltx);
         view.setY(lty);
     }
 
-    public void setCoords(ImageView view, float x, float y , float dx , float dy){
+    public void setCoords(ImageView view, float x, float y, float dx, float dy) {
         view.setX(x - dx);
         view.setY(y - dy);
     }
 
+    /**
+     * 左滑动
+     */
+    private void moveToLeft(float positionOffset, int position) {
+        interpolated = positionOffset;
+        if (interpolated < 1 && interpolated > 0.0f) {
+            Log.i("MainActivity", "interpolated=" + interpolated);
+            if (position < picList.size() - 1) {
+                frontImage.setImageResource(picList.get(position + 1));
+            }
+            mMatrix = new Matrix(frontImage.getImageMatrix());
+            if (interpolated < 0.9) {
+                mMatrix.setScale(interpolated * interpolated, interpolated * interpolated);
+            } else {
+                mMatrix.setScale(1.0f, 1.0f);
+            }
+            frontImage.setImageMatrix(mMatrix);
+            frontImage.setAlpha(0.7f + interpolated);
+            frontImage.setDrawingCacheEnabled(true);
+            Drawable drawable = frontImage.getDrawable();
+            Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
+            frontImage.setDrawingCacheEnabled(false);
+            FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) frontImage.getLayoutParams();
+            if (interpolated < 0.9) {
+                layoutParams.height = (int) (bitmap.getHeight() * interpolated * interpolated);
+                layoutParams.width = (int) (bitmap.getWidth() * interpolated * interpolated);
+            } else {
+                layoutParams.height = (int) (bitmap.getHeight() * 1);
+                layoutParams.width = (int) (bitmap.getWidth() * 1);
+            }
+            frontImage.setLayoutParams(layoutParams);
+            pathMeasure.getPosTan(pathMeasure.getLength() * interpolated, pos, null);
+            setCoords(frontImage, pos[0], pos[1]);
+            setCoords(backImage, endPoint.x, endPoint.y + (screenHeight - endPoint.y + backHeight / 2) * 1.5f * interpolated * interpolated);
+        }
+    }
 
+    protected void moveToRight(float positionOffset, int position) {
+        interpolated = 1-positionOffset;
+        Log.i("MainActivity", "interpolated=" + interpolated);
+        if (interpolated < 1 && interpolated > .0f) {
+            if(position>=0) {
+                frontImage.setImageResource(picList.get(position));
+            }
+            mMatrix = new Matrix(backImage.getImageMatrix());
+//        if (interpolated > 0.9) {
+//            mMatrix.setScale(1-interpolated * interpolated, 1-interpolated * interpolated);
+//        } else {
+//            mMatrix.setScale(1.0f, 1.0f);
+//        }
+            mMatrix.setScale((1 - interpolated) * (1-interpolated), (1 - interpolated) * (1-interpolated));
+            backImage.setImageMatrix(mMatrix);
+            backImage.setAlpha(0.7f + (1 - interpolated));
+            backImage.setDrawingCacheEnabled(true);
+            Drawable drawable = backImage.getDrawable();
+            Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
+            backImage.setDrawingCacheEnabled(false);
+            FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) backImage.getLayoutParams();
+//        if (interpolated < 0.9) {
+//            layoutParams.height = (int) (bitmap.getHeight() * interpolated * interpolated);
+//            layoutParams.width = (int) (bitmap.getWidth() * interpolated * interpolated);
+//        } else {
+//            layoutParams.height = (int) (bitmap.getHeight() * 1);
+//            layoutParams.width = (int) (bitmap.getWidth() * 1);
+//        }
+            layoutParams.height = (int) (bitmap.getHeight() * (1 - interpolated) * (1-interpolated));
+            layoutParams.width = (int) (bitmap.getWidth() * (1 - interpolated) * (1-interpolated));
+            backImage.setLayoutParams(layoutParams);
+            pathMeasure.getPosTan(pathMeasure.getLength() * (1-interpolated), pos, null);
+            setCoords(backImage, pos[0], pos[1]);
+            setCoords(frontImage, endPoint.x, endPoint.y + (screenHeight - endPoint.y + frontHeight / 2) * 1.5f * (1 - interpolated) * (1-interpolated));
+        }
+    }
 }

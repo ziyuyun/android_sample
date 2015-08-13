@@ -11,6 +11,7 @@
         android:layout_height="wrap_content"
         android:src="@drawable/purple_light"
         android:layout_gravity="center_horizontal"
+        android:scaleType="matrix"
         />
 
     <ImageView
@@ -19,6 +20,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
         android:src="@drawable/milky_way"
+        android:scaleType="matrix"
         />
 
     <ImageView
@@ -27,6 +29,7 @@
         android:layout_height="wrap_content"
         android:src="@drawable/stars"
         android:layout_gravity="center_horizontal"
+        android:scaleType="matrix"
         />
     <ImageView
         android:id="@+id/iv_stars_B"
@@ -34,6 +37,7 @@
         android:layout_height="wrap_content"
         android:src="@drawable/stars"
         android:layout_gravity="center_horizontal"
+        android:scaleType="matrix"
         />
 
     <ImageView

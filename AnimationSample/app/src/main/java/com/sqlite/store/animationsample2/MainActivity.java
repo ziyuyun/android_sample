@@ -192,7 +192,6 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
     private void moveToLeft(float positionOffset, int position) {
         interpolated = positionOffset;
         if (interpolated < 1 && interpolated > 0.0f) {
-            Log.i("MainActivity", "position=" + position);
             if (position == 3 && interpolated > 0.9) {
                 btnLand.setVisibility(View.VISIBLE);
             }

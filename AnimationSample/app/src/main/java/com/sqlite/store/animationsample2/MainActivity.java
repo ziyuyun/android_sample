@@ -4,6 +4,7 @@ import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.graphics.Path;
 import android.graphics.PathMeasure;
@@ -70,6 +71,8 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
     private int frontHeight;
     private boolean isChange = false;
     private int lastValue;
+    private int imageRealHeight;
+    private int imageRealWidth;
 
     private GestureDetector mGestureDetector;
     List<Integer> picList = new ArrayList<Integer>();
@@ -118,7 +121,7 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
         CPoint p7 = new CPoint(dp2Px(228), dp2Px(385));
         CPoint p8 = new CPoint(dp2Px(207), dp2Px(541));
         CPoint p9 = new CPoint(dp2Px(221), dp2Px(438));
-        CPoint p10 = new CPoint(dp2Px(205), dp2Px(451));
+        CPoint p10 = new CPoint(screenWidth/2, dp2Px(520));
         endPoint = p10;
         Path path = new Path();
         List<CPoint> points = new ArrayList<CPoint>();
@@ -150,15 +153,18 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
         mViewPager.addOnPageChangeListener(this);
         backImage.setImageResource(picList.get(0));
         interpolated = 1.0f;
-        mMatrix = new Matrix(backImage.getImageMatrix());
-        mMatrix.setScale(1.0f, 1.0f);
-        backImage.setImageMatrix(mMatrix);
         Drawable drawable = backImage.getDrawable();
-        Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
+        final Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
         backImage.setDrawingCacheEnabled(false);
         FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) backImage.getLayoutParams();
-        layoutParams.height = (int) (bitmap.getHeight() * 1.0f);
-        layoutParams.width = (int) (bitmap.getWidth() * 1.0f);
+        final BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inJustDecodeBounds = true;
+        BitmapFactory.decodeResource(getResources(),R.drawable.pic3, options);
+        imageRealHeight = options.outHeight;
+        imageRealWidth = options.outWidth;
+        layoutParams.height = (int) (bitmap.getHeight());
+        layoutParams.width = (int) (bitmap.getWidth());
+        Log.i("MainActivity", "height="+layoutParams.height+", width="+layoutParams.width);
         backImage.setLayoutParams(layoutParams);
         backImage.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             boolean isFirst = true;//默认调用两次，这里只让它执行一次回调
@@ -290,8 +296,9 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
         if (interpolated < 1 && interpolated > .0f) {
             if(position>=0) {
                 frontImage.setImageResource(picList.get(position));
+
             }
-            if(position == 4 && interpolated<0.9){
+            if(position == 3 && interpolated<0.9){
                 btnLand.setVisibility(View.INVISIBLE);
             }
             mMatrix = new Matrix(frontImage.getImageMatrix());

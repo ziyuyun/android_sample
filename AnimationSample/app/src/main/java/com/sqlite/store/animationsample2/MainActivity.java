@@ -166,7 +166,9 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
                     changeStateRight();
                 }
             }
-            mFloatCelestialBody.setViewFloat();
+            if(mFloatCelestialBody != null) {
+                mFloatCelestialBody.setViewFloat();
+            }
         }
     }
 

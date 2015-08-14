@@ -11,7 +11,6 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.support.v4.view.ViewPager;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewTreeObserver;
@@ -34,14 +33,17 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
     private float screenWidth;
     private float screenHeight;
     private float interpolated;             //滑动偏移百分比
-    private PathMeasure pathMeasure;
+    private PathMeasure pathMeasureLeft;
+    private PathMeasure pathMeasureRight;
+    private PathMeasure pathMeasureLast;
+    private PathMeasure currPathMeasure;
+
     float[] mCurrPos = new float[2];        //当前位置点
     private Matrix mMatrix;
     private ViewPager mViewPager;
-    private CPoint endPoint;                //结束位置点坐标
-    private Path pathLeft;                  //左边出来球的运动路径
-    private Path pathRight;                 //右边出来球的运动路径
-    private Path pathLast;                  //最后一个球的运动路径
+    private List<CPoint> leftPointList;                  //左边出来球的运动路径
+    private List<CPoint> rightPointList;                 //右边出来球的运动路径
+    private List<CPoint> lastPointList;                  //最后一个球的运动路径
 
     private boolean left = false;           //是否向左滑动
     private boolean right = false;          //是否向右滑动
@@ -59,12 +61,14 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
     private int mFrontHeight;               //前景图高度
     private int mBackHeight;                //后景图高度
     private boolean isChange = false;       //viewpager是否已经切换
+    private CPoint leftPreEndPoint;         //左滑时当前一张图的结束点坐标
+    private CPoint rightEndPoint;        //右滑时前一张浮动出的图结束点的坐标
+    private boolean isInitMeasure = false;
 
     private int[] yOffsetArray;    //Y轴偏移的数值数组，分别表示A1,A2,A3,A4的偏移点
-    private int mDy;                //Y轴各状态点之间的间隔;
 
     List<Integer> picList = new ArrayList<Integer>();
-    private BackgroundState a1, a2, a3, a4;
+    private BackgroundState a1, a2, a3, a4, aMilkyWayInit;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,12 +80,13 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
         screenHeight = wm.getDefaultDisplay().getHeight();
         setContentView(R.layout.activity_main);
         initView();
-        initPath();
+        initLeftPath();
+        initRightPath();
+        initLastPath();
         initData();
         final ViewTreeObserver vto = mIvPurpleLight.getViewTreeObserver();
         vto.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             boolean isFirst = true;
-
             @Override
             public void onGlobalLayout() {
                 if (isFirst) {
@@ -90,7 +95,6 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
                 }
             }
         });
-
         initImage();
         initListener();
     }
@@ -126,11 +130,11 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
 
     private void initData() {
         yOffsetArray = new int[]{dp2Px(305), dp2Px(351), dp2Px(397), dp2Px(444)};
-//        mDy = dp2Px(44);
         a1 = new BackgroundState(1.0f, 0.5f, yOffsetArray[1]);
         a2 = new BackgroundState(1.0f, 1.0f, yOffsetArray[2]);
         a3 = new BackgroundState(.0f, 2.0f, yOffsetArray[3]);
         a4 = new BackgroundState(.0f, 0.25f, yOffsetArray[0]);
+        aMilkyWayInit = new BackgroundState(1.0f, 1.0f, yOffsetArray[0]);
         picList.add(R.drawable.pic1);
         picList.add(R.drawable.pic2);
         picList.add(R.drawable.pic3);
@@ -171,7 +175,6 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
             tempImage = mIvFront;
             mIvFront = mIvBack;
             mIvBack = tempImage;
-            setCoords(mIvFront, endPoint.x, endPoint.y);
             mIvFront.setAlpha(1.0f);
             float y = mIvFront.getY();
             mFrontAnimator = ObjectAnimator.ofFloat(mIvFront, "y", y - 10, y + 10);
@@ -187,6 +190,49 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
             } else {
                 changeStateRight();
             }
+            isInitMeasure = false;
+        }
+    }
+
+    private void leftInitPathMeasure(){
+        switch (mViewPager.getCurrentItem()){
+            case 0:
+                leftPreEndPoint = leftPointList.get(leftPointList.size() - 1);
+                currPathMeasure = pathMeasureLeft;
+                break;
+            case 1:
+                leftPreEndPoint = leftPointList.get(leftPointList.size() -1 );
+                currPathMeasure = pathMeasureRight;
+                break;
+            case 2:
+                leftPreEndPoint = rightPointList.get(rightPointList.size() - 1);
+                currPathMeasure = pathMeasureLeft;
+                break;
+            case 3:
+                leftPreEndPoint = leftPointList.get(leftPointList.size() - 1);
+                currPathMeasure = pathMeasureLast;
+                break;
+        }
+    }
+
+    private void rightInitPathMeasure(){
+        switch (mViewPager.getCurrentItem()){
+            case 1:
+                currPathMeasure = pathMeasureLeft;
+                rightEndPoint = leftPointList.get(leftPointList.size()-1);
+                break;
+            case 2:
+                rightEndPoint = leftPointList.get(leftPointList.size()-1);
+                currPathMeasure = pathMeasureRight;
+                break;
+            case 3:
+                rightEndPoint = rightPointList.get(rightPointList.size()-1);
+                currPathMeasure = pathMeasureLeft;
+                break;
+            case 4:
+                rightEndPoint = leftPointList.get(leftPointList.size() - 1);
+                currPathMeasure = pathMeasureLast;
+                break;
         }
     }
 
@@ -204,6 +250,10 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
     private void moveToLeft(float positionOffset, int position) {
         interpolated = positionOffset;
         if (interpolated < 1 && interpolated > 0.0f) {
+            if(!isInitMeasure){
+                isInitMeasure = true;
+                leftInitPathMeasure();
+            }
             if (position == 3 && interpolated > 0.9) {
                 btnLand.setVisibility(View.VISIBLE);
             }
@@ -223,9 +273,9 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
             layoutParams.height = (int) (bitmap.getHeight() * interpolated * interpolated);
             layoutParams.width = (int) (bitmap.getWidth() * interpolated * interpolated);
             mIvBack.setLayoutParams(layoutParams);
-            pathMeasure.getPosTan(pathMeasure.getLength() * interpolated, mCurrPos, null);
+            currPathMeasure.getPosTan(currPathMeasure.getLength() * interpolated, mCurrPos, null);
             setCoords(mIvBack, mCurrPos[0], mCurrPos[1]);
-            setCoords(mIvFront, endPoint.x, endPoint.y + (screenHeight - endPoint.y + mFrontHeight / 2) * 1.5f * interpolated * interpolated);
+            setCoords(mIvFront, leftPreEndPoint.x, leftPreEndPoint.y + (screenHeight - leftPreEndPoint.y + mFrontHeight / 2) * 1.5f * interpolated * interpolated);
         }
     }
 
@@ -237,8 +287,11 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
      */
     protected void moveToRight(float positionOffset, int position) {
         interpolated = positionOffset;
-        Log.i("MainActivity", "interpolated = " + interpolated);
         if (interpolated < 1 && interpolated > .0f) {
+            if(!isInitMeasure){
+                isInitMeasure = true;
+                rightInitPathMeasure();
+            }
             if (position >= 0) {
                 mIvBack.setImageResource(picList.get(position));
             }
@@ -270,9 +323,9 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
             layoutParams.height = (int) (bitmap.getHeight() * interpolated * interpolated);
             layoutParams.width = (int) (bitmap.getWidth() * interpolated * interpolated);
             mIvFront.setLayoutParams(layoutParams);
-            pathMeasure.getPosTan(pathMeasure.getLength() * interpolated, mCurrPos, null);
+            currPathMeasure.getPosTan(currPathMeasure.getLength() * interpolated, mCurrPos, null);
             setCoords(mIvFront, mCurrPos[0], mCurrPos[1]);
-            setCoords(mIvBack, endPoint.x, endPoint.y + (screenHeight - endPoint.y + mBackHeight / 2) * 1.5f * interpolated * interpolated);
+            setCoords(mIvBack, rightEndPoint.x, rightEndPoint.y + (screenHeight - rightEndPoint.y + mBackHeight / 2) * 1.5f * interpolated * interpolated);
         }
     }
 
@@ -291,8 +344,7 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
         //将紫光图隐藏
         mIvPurpleLight.setVisibility(View.GONE);
         //计算银河的位置点
-        setViewState(a4, mIvMiklyWay);//B1(A4)
-        mIvMiklyWay.setAlpha(1.0f); //初始化设置成不透明
+        setViewState(aMilkyWayInit, mIvMiklyWay);
         setViewState(a1, mIvStarA);//A1
         setViewState(a4, mIvStarB);//B1(A4)
     }
@@ -319,7 +371,8 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
     /**
      * 初始化路径和偏移点
      */
-    protected void initPath() {
+    protected void initLeftPath() {
+        Path pathLeft = new Path();
         CPoint p0 = new CPoint(dp2Px(143), dp2Px(211));
         CPoint p1 = new CPoint(dp2Px(150), dp2Px(239));
         CPoint p2 = new CPoint(dp2Px(131), dp2Px(255));
@@ -329,23 +382,60 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
         CPoint p7 = new CPoint(dp2Px(228), dp2Px(385));
         CPoint p8 = new CPoint(dp2Px(207), dp2Px(541));
         CPoint p9 = new CPoint(dp2Px(221), dp2Px(438));
-        CPoint p10 = new CPoint(screenWidth / 2, dp2Px(520));
-        endPoint = p10;
-        Path path = new Path();
-        List<CPoint> points = new ArrayList<CPoint>();
-        points.add(p0);
-        points.add(p1);
-        points.add(p2);
-        points.add(p3);
-        points.add(p4);
-        points.add(p6);
-        points.add(p7);
+//        CPoint p10 = new CPoint(screenWidth / 2, dp2Px(520));
+        CPoint p10 = new CPoint(screenWidth / 2,1036);
+        pathLeft = new Path();
+        leftPointList = new ArrayList<CPoint>();
+        leftPointList.add(p0);
+        leftPointList.add(p1);
+        leftPointList.add(p2);
+        leftPointList.add(p3);
+        leftPointList.add(p4);
+        leftPointList.add(p6);
+        leftPointList.add(p7);
         //points.add(p8);
-        points.add(p9);
-        points.add(p10);
-        PathUtil.drawPath(path, points, 0.2f);
-        pathMeasure = new PathMeasure(path, false);
+        leftPointList.add(p9);
+        leftPointList.add(p10);
+        PathUtil.drawPath(pathLeft, leftPointList, 0.2f);
+        pathMeasureLeft = new PathMeasure(pathLeft, false);
+        currPathMeasure = pathMeasureLeft;
+        leftPreEndPoint = leftPointList.get(leftPointList.size()-1);
     }
+
+    protected void initRightPath(){
+        Path pathRight = new Path();
+        CPoint rp0 = new CPoint(516, 503);
+        CPoint rp1 = new CPoint(394, 519);
+        CPoint rp2 = new CPoint(425, 712);
+        CPoint rp3 = new CPoint(412, 635);
+        CPoint rp4 = new CPoint(screenWidth / 2,1036);
+        rightPointList = new ArrayList<CPoint>();
+        rightPointList.add(rp0);
+        rightPointList.add(rp1);
+        rightPointList.add(rp2);
+        rightPointList.add(rp3);
+        rightPointList.add(rp4);
+        PathUtil.drawPath(pathRight, rightPointList, 0.2f);
+        pathMeasureRight = new PathMeasure(pathRight, false);
+    }
+
+    protected void initLastPath(){
+        Path pathLast = new Path();
+        lastPointList = new ArrayList<CPoint>();
+        CPoint lastP0 = new CPoint(303, 451);
+        CPoint lastP1 = new CPoint(410, 496);
+        CPoint lastP2 = new CPoint(332, 749);
+        CPoint lastP3 = new CPoint(626, 370);
+        CPoint lastP4 = new CPoint(388, 712);
+        lastPointList.add(lastP0);
+        lastPointList.add(lastP1);
+        lastPointList.add(lastP2);
+        lastPointList.add(lastP3);
+        lastPointList.add(lastP4);
+        PathUtil.drawPath(pathLast, lastPointList, 0.2f);
+        pathMeasureLast = new PathMeasure(pathLast, false);
+    }
+
 
     /**
      * 初始化前景图和后景图（前景图指在前面浮动现实的图，后景图指下次滑动时浮现出的图）
@@ -364,14 +454,13 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
         mIvFront.setLayoutParams(layoutParams);
         mIvFront.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             boolean isFirst = true;//默认调用两次，这里只让它执行一次回调
-
             @Override
             public void onGlobalLayout() {
                 if (isFirst) {
                     isFirst = false;
-                    pathMeasure.getPosTan(pathMeasure.getLength() * interpolated, mCurrPos, null);
+                    pathMeasureLeft.getPosTan(currPathMeasure.getLength() * interpolated, mCurrPos, null);
                     //现在布局全部完成，可以获取到任何View组件的宽度、高度、左边、右边等信息
-                    setCoords(mIvFront, endPoint.x, endPoint.y);
+                    setCoords(mIvFront, leftPreEndPoint.x, leftPreEndPoint.y);
                     float y = mIvFront.getY();
                     mFrontAnimator = ObjectAnimator.ofFloat(mIvFront, "y", y - 10, y + 10);
                     mFrontAnimator.setDuration(DURATION);
@@ -415,10 +504,11 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
             case 0:
                 /**
                  * A1-A2: mIvStartA
-                 * B1-B2(A4-A1):mIvMilkyWay, mIvStartB
+                 * B1-B2(A4-A1):mIvStartB
+                 * Amilkyway-A1:mIvMilkyWay
                  */
                 exchangeState(a1, a3, mIvStarA, interpolated);
-                exchangeState(a4, a1, mIvMiklyWay, interpolated);
+                exchangeState(aMilkyWayInit, a1, mIvMiklyWay, interpolated);
                 exchangeState(a4, a1, mIvStarB, interpolated);
                 break;
             case 1:
@@ -542,8 +632,7 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
             case 1:
                 setViewState(a1, mIvStarA);
                 setViewState(a4, mIvStarB);
-                setViewState(a4, mIvMiklyWay);
-                mIvMiklyWay.setAlpha(1.0f);
+                setViewState(aMilkyWayInit, mIvMiklyWay);
                 currState = 0;
                 break;
 
@@ -560,7 +649,7 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
      */
     private void backgroundChangeRight(float interpolated) {
         switch (currState) {
-            case 4:
+            case 5:
                 /**
                  * A3-A2:mIvStartA, mIvPurpleLight
                  * B3-B2(A2-A1):mIvStartB
@@ -570,7 +659,7 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
                 //这里紫光实际上应该缩小，并且向下移动
                 exchangeState(a3, a2, mIvPurpleLight, interpolated);
                 break;
-            case 3:
+            case 4:
                 /**
                  * A2-A1:mIvStartA, mIvPurpleLight
                  * B2-B1(A1-A4):mIvStartB
@@ -579,7 +668,7 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
                 exchangeState(a1, a4, mIvStarB, interpolated);
                 exchangeState(a2, a1, mIvPurpleLight, interpolated);
                 break;
-            case 2:
+            case 3:
                 /**
                  * A1-A4:mIvStartA, mIvPurpleLight
                  * B4-B3(A3-A2):mIvStartB, mIvMilkyWay
@@ -589,7 +678,7 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
                 exchangeState(a3, a2, mIvStarB, interpolated);
                 exchangeState(a3, a2, mIvMiklyWay, interpolated);
                 break;
-            case 1:
+            case 2:
             /*
              * A3-A2:mIvStartA
              * B3-B2(A2-A1):mIvStartB, mIvMilkyWay
@@ -598,14 +687,15 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
                 exchangeState(a2, a1, mIvStarB, interpolated);
                 exchangeState(a2, a1, mIvMiklyWay, interpolated);
                 break;
-            case 0:
+            case 1:
             /*
              * A2-A1:mIvStartA
-             * B2-B1(A1-A4):mIvStartB, mIvMilkyWay
+             * B2-B1(A1-A4):mIvStartB
+             * A1-Amilkyway:mIvMilkyWay
              */
                 exchangeState(a2, a1, mIvStarA, interpolated);
                 exchangeState(a1, a4, mIvStarB, interpolated);
-                exchangeState(a1, a4, mIvMiklyWay, interpolated);
+                exchangeState(a1, aMilkyWayInit, mIvMiklyWay, interpolated);
                 break;
         }
     }

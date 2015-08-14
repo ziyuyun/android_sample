@@ -60,7 +60,7 @@
         android:src="@drawable/btn_land"
         android:layout_gravity="center"
         android:background="@null"
-        android:layout_marginTop="80dp"
+        android:layout_marginTop="50dp"
         android:visibility="invisible"
         />
 

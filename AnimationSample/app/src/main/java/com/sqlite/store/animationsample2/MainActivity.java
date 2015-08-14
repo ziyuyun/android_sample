@@ -11,6 +11,7 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.support.v4.view.ViewPager;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewTreeObserver;
@@ -250,6 +251,7 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
     private void moveToLeft(float positionOffset, int position) {
         interpolated = positionOffset;
         if (interpolated < 1 && interpolated > 0.0f) {
+            Log.i("MainActivity", "position="+position);
             if(!isInitMeasure){
                 isInitMeasure = true;
                 leftInitPathMeasure();
@@ -288,6 +290,7 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
     protected void moveToRight(float positionOffset, int position) {
         interpolated = positionOffset;
         if (interpolated < 1 && interpolated > .0f) {
+            Log.i("MainActivity", "position="+position);
             if(!isInitMeasure){
                 isInitMeasure = true;
                 rightInitPathMeasure();
@@ -404,17 +407,21 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
 
     protected void initRightPath(){
         Path pathRight = new Path();
-        CPoint rp0 = new CPoint(516, 503);
-        CPoint rp1 = new CPoint(394, 519);
-        CPoint rp2 = new CPoint(425, 712);
-        CPoint rp3 = new CPoint(412, 635);
-        CPoint rp4 = new CPoint(screenWidth / 2,1036);
+        CPoint rp0 = new CPoint(dp2Px(275),dp2Px(268));//new CPoint(516, 503);
+        CPoint rp1 = new CPoint(dp2Px(210), dp2Px(277));//new CPoint(394, 519);
+        CPoint rp2 = new CPoint(dp2Px(227), dp2Px(380));//new CPoint(425, 712);
+        CPoint rp3 = new CPoint(dp2Px(220), dp2Px(339));//new CPoint(412, 635);
+        CPoint rp4 = new CPoint(screenWidth / 2, dp2Px(553));//new CPoint(screenWidth / 2,1036);
         rightPointList = new ArrayList<CPoint>();
         rightPointList.add(rp0);
         rightPointList.add(rp1);
         rightPointList.add(rp2);
         rightPointList.add(rp3);
         rightPointList.add(rp4);
+        for(int i=0;i<rightPointList.size();i++){
+            CPoint cPoint =  rightPointList.get(i);
+            Log.i("MainActivity", "right point"+i+".x="+px2Dp(cPoint.x)+"dp, point.y="+px2Dp(cPoint.y)+"dp");
+        }
         PathUtil.drawPath(pathRight, rightPointList, 0.2f);
         pathMeasureRight = new PathMeasure(pathRight, false);
     }
@@ -422,16 +429,20 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
     protected void initLastPath(){
         Path pathLast = new Path();
         lastPointList = new ArrayList<CPoint>();
-        CPoint lastP0 = new CPoint(303, 451);
-        CPoint lastP1 = new CPoint(410, 496);
-        CPoint lastP2 = new CPoint(332, 749);
-        CPoint lastP3 = new CPoint(626, 370);
-        CPoint lastP4 = new CPoint(388, 712);
+        CPoint lastP0 = new CPoint(dp2Px(162), dp2Px(241));//new CPoint(303, 451);
+        CPoint lastP1 = new CPoint(dp2Px(219), dp2Px(265));//new CPoint(410, 496);
+        CPoint lastP2 = new CPoint(dp2Px(177), dp2Px(399));//new CPoint(332, 749);
+        CPoint lastP3 = new CPoint(dp2Px(334), dp2Px(197));//new CPoint(626, 370);
+        CPoint lastP4 = new CPoint(dp2Px(207), dp2Px(380));//new CPoint(388, 712);
         lastPointList.add(lastP0);
         lastPointList.add(lastP1);
         lastPointList.add(lastP2);
         lastPointList.add(lastP3);
         lastPointList.add(lastP4);
+        for(int i=0;i<lastPointList.size();i++){
+            CPoint cPoint =  lastPointList.get(i);
+            Log.i("MainActivity", "last point"+i+".x="+px2Dp(cPoint.x)+"dp, point.y="+px2Dp(cPoint.y)+"dp");
+        }
         PathUtil.drawPath(pathLast, lastPointList, 0.2f);
         pathMeasureLast = new PathMeasure(pathLast, false);
     }

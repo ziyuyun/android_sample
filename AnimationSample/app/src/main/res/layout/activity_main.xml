@@ -2,7 +2,6 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:id="@+id/parent"
     android:background="#000000"
     >
     <ImageView
@@ -36,11 +35,11 @@
         android:scaleType="matrix"
         />
 
-    <ImageView
-        android:id="@+id/iv_front"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        />
+    <FrameLayout
+        android:id="@+id/flayout_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+    </FrameLayout>
     <ImageView
         android:id="@+id/iv_back"
         android:layout_width="wrap_content"

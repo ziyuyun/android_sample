@@ -12,6 +12,7 @@ import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.support.v4.view.ViewPager;
 import android.util.Log;
+import android.view.Display;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewTreeObserver;
@@ -24,23 +25,15 @@ import android.widget.ImageView;
 import com.sqlite.store.animationsample2.pathutil.PathUtil;
 import com.sqlite.store.animationsample2.pathutil.PathUtil.CPoint;
 import com.sqlite.store.animationsample2.view.BackgroundState;
+import com.sqlite.store.animationsample2.view.CelestialBodyView;
 import com.sqlite.store.animationsample2.view.MyViewPagerAdapter;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends Activity implements ViewPager.OnPageChangeListener {
-    public static final long DURATION = 1000;
-    private float screenWidth;
-    private float screenHeight;
     private float interpolated;             //滑动偏移百分比
-    private PathMeasure pathMeasureLeft;
-    private PathMeasure pathMeasureRight;
-    private PathMeasure pathMeasureLast;
-    private PathMeasure currPathMeasure;
 
-    float[] mCurrPos = new float[2];        //当前位置点
-    private Matrix mMatrix;
     private ViewPager mViewPager;
     private List<CPoint> leftPointList;                  //左边出来球的运动路径
     private List<CPoint> rightPointList;                 //右边出来球的运动路径
@@ -50,40 +43,36 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
     private boolean right = false;          //是否向右滑动
     private float startX;
     private int currState = 0;
+    private int screenWidth;
 
-    private ImageView mIvBack;              //后景图
-    private ImageView mIvFront;             //前景图
+    private FrameLayout mfLayoutContainer;
     private ImageButton btnLand;
     private ImageView mIvMiklyWay;          //银河图
     private ImageView mIvPurpleLight;       //紫光图
     private ImageView mIvStarA;             //A点星星图
     private ImageView mIvStarB;             //B点星星图
-    private ObjectAnimator mFrontAnimator;  //前景图动画
-    private int mFrontHeight;               //前景图高度
-    private int mBackHeight;                //后景图高度
     private boolean isChange = false;       //viewpager是否已经切换
-    private CPoint leftPreEndPoint;         //左滑时当前一张图的结束点坐标
-    private CPoint rightEndPoint;        //右滑时前一张浮动出的图结束点的坐标
-    private boolean isInitMeasure = false;
 
     private int[] yOffsetArray;    //Y轴偏移的数值数组，分别表示A1,A2,A3,A4的偏移点
 
-    List<Integer> picList = new ArrayList<Integer>();
     private BackgroundState a1, a2, a3, a4, aMilkyWayInit;
+    private List<CelestialBodyView> mCelestialViews;    //天体View集合
+    private CelestialBodyView mFloatCelestialBody;      //当前浮动天体
+    private CelestialBodyView mFlyCelestialBody;
+    private CelestialBodyView mMoveUpCelestialBody;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         super.onCreate(savedInstanceState);
-        WindowManager wm = getWindowManager();
-        screenWidth = wm.getDefaultDisplay().getWidth();
-        screenHeight = wm.getDefaultDisplay().getHeight();
         setContentView(R.layout.activity_main);
-        initView();
+        Display display = getWindowManager().getDefaultDisplay();
+        screenWidth = display.getWidth();
         initLeftPath();
         initRightPath();
         initLastPath();
+        initView();
         initData();
         final ViewTreeObserver vto = mIvPurpleLight.getViewTreeObserver();
         vto.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
@@ -136,11 +125,6 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
         a3 = new BackgroundState(.0f, 2.0f, yOffsetArray[3]);
         a4 = new BackgroundState(.0f, 0.25f, yOffsetArray[0]);
         aMilkyWayInit = new BackgroundState(1.0f, 1.0f, yOffsetArray[0]);
-        picList.add(R.drawable.pic1);
-        picList.add(R.drawable.pic2);
-        picList.add(R.drawable.pic3);
-        picList.add(R.drawable.pic4);
-        picList.add(R.drawable.pic5);
         List<Integer> viewIDs = new ArrayList<Integer>();
         viewIDs.add(R.drawable.text1);
         viewIDs.add(R.drawable.text2);
@@ -167,83 +151,25 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
 
     @Override
     public void onPageScrollStateChanged(int state) {
-        if (state == 1) {
-            if (mFrontAnimator.isRunning()) {
-                mFrontAnimator.cancel();
+        if (state == 1) {//停止浮动天体的动画
+            if(mFloatCelestialBody != null){
+                mFloatCelestialBody.stopFloatAnimator();
             }
-        } else if (state == 0 && isChange) {
-            ImageView tempImage;
-            tempImage = mIvFront;
-            mIvFront = mIvBack;
-            mIvBack = tempImage;
-            mIvFront.setAlpha(1.0f);
-            float y = mIvFront.getY();
-            mFrontAnimator = ObjectAnimator.ofFloat(mIvFront, "y", y - 10, y + 10);
-            mFrontAnimator.setDuration(DURATION);
-            mFrontAnimator.setRepeatMode(ValueAnimator.REVERSE);
-            mFrontAnimator.setRepeatCount(ValueAnimator.INFINITE);
-            mFrontAnimator.start();
-            isChange = false;
-            mBackHeight = mIvBack.getHeight();
-            mFrontHeight = mIvFront.getHeight();
-            if (left) {
-                changeStateLeft();
-            } else {
-                changeStateRight();
+        } else if (state == 0) {
+            if (isChange) {
+                isChange = false;
+                if (left) {
+                    mFloatCelestialBody = mFlyCelestialBody;
+                    changeStateLeft();
+                } else {
+                    mFloatCelestialBody = mMoveUpCelestialBody;
+                    changeStateRight();
+                }
             }
-            isInitMeasure = false;
+            mFloatCelestialBody.setViewFloat();
         }
     }
 
-    private void leftInitPathMeasure(){
-        switch (mViewPager.getCurrentItem()){
-            case 0:
-                leftPreEndPoint = leftPointList.get(leftPointList.size() - 1);
-                currPathMeasure = pathMeasureLeft;
-                break;
-            case 1:
-                leftPreEndPoint = leftPointList.get(leftPointList.size() -1 );
-                currPathMeasure = pathMeasureRight;
-                break;
-            case 2:
-                leftPreEndPoint = rightPointList.get(rightPointList.size() - 1);
-                currPathMeasure = pathMeasureLeft;
-                break;
-            case 3:
-                leftPreEndPoint = leftPointList.get(leftPointList.size() - 1);
-                currPathMeasure = pathMeasureLast;
-                break;
-        }
-    }
-
-    private void rightInitPathMeasure(){
-        switch (mViewPager.getCurrentItem()){
-            case 1:
-                currPathMeasure = pathMeasureLeft;
-                rightEndPoint = leftPointList.get(leftPointList.size()-1);
-                break;
-            case 2:
-                rightEndPoint = leftPointList.get(leftPointList.size()-1);
-                currPathMeasure = pathMeasureRight;
-                break;
-            case 3:
-                rightEndPoint = rightPointList.get(rightPointList.size()-1);
-                currPathMeasure = pathMeasureLeft;
-                break;
-            case 4:
-                rightEndPoint = leftPointList.get(leftPointList.size() - 1);
-                currPathMeasure = pathMeasureLast;
-                break;
-        }
-    }
-
-    public void setCoords(ImageView view, float x, float y) {
-        //计算根据中心点坐标计算左上角的坐标点
-        float ltx = x - view.getMeasuredWidth() / 2;
-        float lty = y - view.getMeasuredHeight() / 2;
-        view.setX(ltx);
-        view.setY(lty);
-    }
 
     /**
      * 左滑动
@@ -251,33 +177,16 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
     private void moveToLeft(float positionOffset, int position) {
         interpolated = positionOffset;
         if (interpolated < 1 && interpolated > 0.0f) {
-            Log.i("MainActivity", "position="+position);
-            if(!isInitMeasure){
-                isInitMeasure = true;
-                leftInitPathMeasure();
-            }
             if (position == 3 && interpolated > 0.9) {
                 btnLand.setVisibility(View.VISIBLE);
             }
-            if (position < picList.size() - 1) {
-                mIvBack.setImageResource(picList.get(position + 1));
-            }
             backgroundChangeLeft(interpolated);
-            mMatrix = new Matrix(mIvBack.getImageMatrix());
-            mMatrix.setScale(interpolated * interpolated, interpolated * interpolated);
-            mIvBack.setImageMatrix(mMatrix);
-            mIvBack.setAlpha(0.7f + interpolated);
-            mIvBack.setDrawingCacheEnabled(true);
-            Drawable drawable = mIvBack.getDrawable();
-            Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
-            mIvBack.setDrawingCacheEnabled(false);
-            FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) mIvBack.getLayoutParams();
-            layoutParams.height = (int) (bitmap.getHeight() * interpolated * interpolated);
-            layoutParams.width = (int) (bitmap.getWidth() * interpolated * interpolated);
-            mIvBack.setLayoutParams(layoutParams);
-            currPathMeasure.getPosTan(currPathMeasure.getLength() * interpolated, mCurrPos, null);
-            setCoords(mIvBack, mCurrPos[0], mCurrPos[1]);
-            setCoords(mIvFront, leftPreEndPoint.x, leftPreEndPoint.y + (screenHeight - leftPreEndPoint.y + mFrontHeight / 2) * 1.5f * interpolated * interpolated);
+            if(position<mCelestialViews.size() - 1) {//未到达最后一页
+                //当前位置的天体下移，下一个天体飞近
+                mCelestialViews.get(position).moveDown(interpolated);
+                mFlyCelestialBody = mCelestialViews.get(position + 1);
+                mFlyCelestialBody.flying(interpolated);
+            }
         }
     }
 
@@ -288,47 +197,19 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
      * @param position
      */
     protected void moveToRight(float positionOffset, int position) {
-        interpolated = positionOffset;
+        interpolated = 1-positionOffset;
         if (interpolated < 1 && interpolated > .0f) {
-            Log.i("MainActivity", "position="+position);
-            if(!isInitMeasure){
-                isInitMeasure = true;
-                rightInitPathMeasure();
-            }
-            if (position >= 0) {
-                mIvBack.setImageResource(picList.get(position));
-            }
             if (position == 3 && interpolated > 0.1) {
                 btnLand.setVisibility(View.INVISIBLE);
             }
-            backgroundChangeRight(1 - interpolated);
-            mMatrix = new Matrix(mIvBack.getImageMatrix());
-            mMatrix.setScale(1.0f, 1.0f);
-            mIvBack.setImageMatrix(mMatrix);
-            mIvBack.setDrawingCacheEnabled(true);
-            Drawable drawable = mIvBack.getDrawable();
-            Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
-            mIvBack.setDrawingCacheEnabled(false);
-            mIvBack.setAlpha(1.0f);
-            FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) mIvBack.getLayoutParams();
-            layoutParams.height = bitmap.getHeight();
-            layoutParams.width = bitmap.getWidth();
-            mIvBack.setLayoutParams(layoutParams);
-            mMatrix = new Matrix(mIvFront.getImageMatrix());
-            mMatrix.setScale(interpolated * interpolated, interpolated * interpolated);
-            mIvFront.setImageMatrix(mMatrix);
-            mIvFront.setAlpha(0.7f + interpolated);
-            mIvFront.setDrawingCacheEnabled(true);
-            drawable = mIvFront.getDrawable();
-            bitmap = ((BitmapDrawable) drawable).getBitmap();
-            mIvFront.setDrawingCacheEnabled(false);
-            layoutParams = (FrameLayout.LayoutParams) mIvFront.getLayoutParams();
-            layoutParams.height = (int) (bitmap.getHeight() * interpolated * interpolated);
-            layoutParams.width = (int) (bitmap.getWidth() * interpolated * interpolated);
-            mIvFront.setLayoutParams(layoutParams);
-            currPathMeasure.getPosTan(currPathMeasure.getLength() * interpolated, mCurrPos, null);
-            setCoords(mIvFront, mCurrPos[0], mCurrPos[1]);
-            setCoords(mIvBack, rightEndPoint.x, rightEndPoint.y + (screenHeight - rightEndPoint.y + mBackHeight / 2) * 1.5f * interpolated * interpolated);
+            backgroundChangeRight(interpolated);
+            if(position>=0){
+                //前一个位置天体飞远，当前位置天体上移
+                mFlyCelestialBody = mCelestialViews.get(position+1);
+                mFlyCelestialBody.flying(1-interpolated);
+                mMoveUpCelestialBody = mCelestialViews.get(position);
+                mMoveUpCelestialBody.moveUp(interpolated);
+            }
         }
     }
 
@@ -361,52 +242,50 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
     }
 
     protected void initView() {
-        mIvBack = (ImageView) findViewById(R.id.iv_front);
+        mfLayoutContainer = (FrameLayout) findViewById(R.id.flayout_container);
         btnLand = (ImageButton) findViewById(R.id.btn_land);
-        mIvFront = (ImageView) findViewById(R.id.iv_back);
         mViewPager = (ViewPager) findViewById(R.id.vp_container);
         mIvMiklyWay = (ImageView) findViewById(R.id.iv_milky_way);
         mIvPurpleLight = (ImageView) findViewById(R.id.iv_purple_light);
         mIvStarA = (ImageView) findViewById(R.id.iv_stars_A);
         mIvStarB = (ImageView) findViewById(R.id.iv_stars_B);
+        mCelestialViews = new ArrayList<CelestialBodyView>();
+        mCelestialViews.add(new CelestialBodyView(this,leftPointList, R.drawable.pic1));    //左边轨迹飞行
+        mCelestialViews.add(new CelestialBodyView(this, leftPointList, R.drawable.pic2));   //左边轨迹飞行
+        mCelestialViews.add(new CelestialBodyView(this, rightPointList, R.drawable.pic3));  //右边轨迹飞行
+        mCelestialViews.add(new CelestialBodyView(this, leftPointList, R.drawable.pic4));   //左边轨迹飞行
+        mCelestialViews.add(new CelestialBodyView(this, lastPointList, R.drawable.pic5));   //最后一张单独的飞行轨迹
+        for (int i= 0;i<mCelestialViews.size();i++){
+            mfLayoutContainer.addView(mCelestialViews.get(i).getView());
+        }
     }
 
     /**
      * 初始化路径和偏移点
      */
     protected void initLeftPath() {
-        Path pathLeft = new Path();
         CPoint p0 = new CPoint(dp2Px(143), dp2Px(211));
         CPoint p1 = new CPoint(dp2Px(150), dp2Px(239));
         CPoint p2 = new CPoint(dp2Px(131), dp2Px(255));
         CPoint p3 = new CPoint(dp2Px(156), dp2Px(252));
         CPoint p4 = new CPoint(dp2Px(176), dp2Px(293));
-        CPoint p6 = new CPoint(dp2Px(196), dp2Px(319));
-        CPoint p7 = new CPoint(dp2Px(228), dp2Px(385));
-        CPoint p8 = new CPoint(dp2Px(207), dp2Px(541));
-        CPoint p9 = new CPoint(dp2Px(221), dp2Px(438));
-//        CPoint p10 = new CPoint(screenWidth / 2, dp2Px(520));
-        CPoint p10 = new CPoint(screenWidth / 2,1036);
-        pathLeft = new Path();
+        CPoint p5 = new CPoint(dp2Px(196), dp2Px(319));
+        CPoint p6 = new CPoint(dp2Px(228), dp2Px(385));
+        CPoint p7 = new CPoint(dp2Px(221), dp2Px(438));
+        CPoint p8 = new CPoint(screenWidth / 2,1036);
         leftPointList = new ArrayList<CPoint>();
         leftPointList.add(p0);
         leftPointList.add(p1);
         leftPointList.add(p2);
         leftPointList.add(p3);
         leftPointList.add(p4);
+        leftPointList.add(p5);
         leftPointList.add(p6);
         leftPointList.add(p7);
-        //points.add(p8);
-        leftPointList.add(p9);
-        leftPointList.add(p10);
-        PathUtil.drawPath(pathLeft, leftPointList, 0.2f);
-        pathMeasureLeft = new PathMeasure(pathLeft, false);
-        currPathMeasure = pathMeasureLeft;
-        leftPreEndPoint = leftPointList.get(leftPointList.size()-1);
+        leftPointList.add(p8);
     }
 
     protected void initRightPath(){
-        Path pathRight = new Path();
         CPoint rp0 = new CPoint(dp2Px(275),dp2Px(268));//new CPoint(516, 503);
         CPoint rp1 = new CPoint(dp2Px(210), dp2Px(277));//new CPoint(394, 519);
         CPoint rp2 = new CPoint(dp2Px(227), dp2Px(380));//new CPoint(425, 712);
@@ -418,16 +297,9 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
         rightPointList.add(rp2);
         rightPointList.add(rp3);
         rightPointList.add(rp4);
-        for(int i=0;i<rightPointList.size();i++){
-            CPoint cPoint =  rightPointList.get(i);
-            Log.i("MainActivity", "right point"+i+".x="+px2Dp(cPoint.x)+"dp, point.y="+px2Dp(cPoint.y)+"dp");
-        }
-        PathUtil.drawPath(pathRight, rightPointList, 0.2f);
-        pathMeasureRight = new PathMeasure(pathRight, false);
     }
 
     protected void initLastPath(){
-        Path pathLast = new Path();
         lastPointList = new ArrayList<CPoint>();
         CPoint lastP0 = new CPoint(dp2Px(162), dp2Px(241));//new CPoint(303, 451);
         CPoint lastP1 = new CPoint(dp2Px(219), dp2Px(265));//new CPoint(410, 496);
@@ -439,12 +311,6 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
         lastPointList.add(lastP2);
         lastPointList.add(lastP3);
         lastPointList.add(lastP4);
-        for(int i=0;i<lastPointList.size();i++){
-            CPoint cPoint =  lastPointList.get(i);
-            Log.i("MainActivity", "last point"+i+".x="+px2Dp(cPoint.x)+"dp, point.y="+px2Dp(cPoint.y)+"dp");
-        }
-        PathUtil.drawPath(pathLast, lastPointList, 0.2f);
-        pathMeasureLast = new PathMeasure(pathLast, false);
     }
 
 
@@ -452,33 +318,16 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
      * 初始化前景图和后景图（前景图指在前面浮动现实的图，后景图指下次滑动时浮现出的图）
      */
     protected void initImage() {
-        mIvBack.setScaleType(ImageView.ScaleType.MATRIX);
-        mIvFront.setScaleType(ImageView.ScaleType.MATRIX);
-        mIvFront.setImageResource(picList.get(0));
+        mFloatCelestialBody = mCelestialViews.get(0);
         interpolated = 1.0f;
-        Drawable drawable = mIvFront.getDrawable();
-        final Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
-        mIvFront.setDrawingCacheEnabled(false);
-        FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) mIvFront.getLayoutParams();
-        layoutParams.height = bitmap.getHeight();
-        layoutParams.width = bitmap.getWidth();
-        mIvFront.setLayoutParams(layoutParams);
-        mIvFront.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+        mfLayoutContainer.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             boolean isFirst = true;//默认调用两次，这里只让它执行一次回调
             @Override
             public void onGlobalLayout() {
                 if (isFirst) {
                     isFirst = false;
-                    pathMeasureLeft.getPosTan(currPathMeasure.getLength() * interpolated, mCurrPos, null);
-                    //现在布局全部完成，可以获取到任何View组件的宽度、高度、左边、右边等信息
-                    setCoords(mIvFront, leftPreEndPoint.x, leftPreEndPoint.y);
-                    float y = mIvFront.getY();
-                    mFrontAnimator = ObjectAnimator.ofFloat(mIvFront, "y", y - 10, y + 10);
-                    mFrontAnimator.setDuration(DURATION);
-                    mFrontAnimator.setRepeatMode(ValueAnimator.REVERSE);
-                    mFrontAnimator.setRepeatCount(ValueAnimator.INFINITE);
-                    mFrontAnimator.start();
-                    mFrontHeight = mIvFront.getHeight();
+                    //设置第一个天体在停靠点浮动
+                    mCelestialViews.get(0).setViewFloat();
                 }
             }
         });

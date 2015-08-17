@@ -5,11 +5,13 @@ import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.graphics.Path;
 import android.graphics.PathMeasure;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.view.Display;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -79,15 +81,17 @@ public class CelestialBodyView {
         view.setY(lty);
     }
 
-    public CelestialBodyView(Context context, List<PathUtil.CPoint> pathPointList, int resId) {
+    public CelestialBodyView(Activity context, List<PathUtil.CPoint> pathPointList, int resId) {
         this.mPathPointList = pathPointList;
         initPath(pathPointList);
         initImageView(context, resId);
     }
 
-    private void initImageView(Context context, int resId){
+    private void initImageView(Activity context, int resId){
         mIvCelestial = new ImageView(context);
-        mIvCelestial.setImageResource(resId);
+//        mIvCelestial.setImageResource(resId);
+        Display display = context.getWindowManager().getDefaultDisplay();
+        loadImage(mIvCelestial, resId, display.getWidth(), display.getHeight());
         mIvCelestial.setScaleType(ImageView.ScaleType.MATRIX);
         mMatrix = new Matrix((mIvCelestial.getImageMatrix()));
         mMatrix.setScale(.0f, .0f);
@@ -149,6 +153,28 @@ public class CelestialBodyView {
 
     public ImageView getView(){
         return mIvCelestial;
+    }
+
+    private void loadImage(ImageView imageView, int resId, int screenWidth, int screenHeight){
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inJustDecodeBounds = true;
+        BitmapFactory.decodeResource(imageView.getResources(), resId, options);
+        int originalWidth = options.outWidth;
+        int originalHeight = options.outHeight;
+        int scale = Math.min(Math.round((float)originalHeight/screenHeight), Math.round((float)originalWidth/screenWidth));
+        final float totalPixels = originalWidth * originalHeight;
+
+        final float totalReqPixelsCap = screenWidth * screenHeight * 2;
+
+        while (totalPixels / (scale * scale) > totalReqPixelsCap) {
+            scale++;
+        }
+        options.inJustDecodeBounds = false;
+        options.inSampleSize = scale;
+        options.inScaled = true;
+        options.inPreferredConfig = Bitmap.Config.ALPHA_8;
+        Bitmap bitmap = BitmapFactory.decodeResource(imageView.getResources(), resId, options);
+        imageView.setImageBitmap(bitmap);
     }
 
 }

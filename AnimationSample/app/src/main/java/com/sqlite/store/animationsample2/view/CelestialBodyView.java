@@ -148,7 +148,7 @@ public class CelestialBodyView {
         layoutParams.width = bitmap.getWidth();
         mIvCelestial.setLayoutParams(layoutParams);
         setCoords(mIvCelestial, mStopPoint.x, mStopPoint.y);
-        mIvCelestial.requestLayout();
+//        mIvCelestial.requestLayout();
         startFloatAnimator();
     }
 

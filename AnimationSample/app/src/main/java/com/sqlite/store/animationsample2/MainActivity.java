@@ -138,7 +138,7 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
         viewIDs.add(R.drawable.text5);
         MyViewPagerAdapter adapter = new MyViewPagerAdapter(viewIDs, this);
         mViewPager.setAdapter(adapter);
-//        mAnimDrawableArm = (AnimationDrawable) mIvArm.getDrawable();
+        mAnimDrawableArm = (AnimationDrawable) mIvArm.getDrawable();
     }
 
     @Override
@@ -161,10 +161,10 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
             if(mFloatCelestialBody != null){
                 mFloatCelestialBody.stopFloatAnimator();
             }
-//            if(!mAnimDrawableArm.isRunning()) {
-//                mAnimDrawableArm.run();
-//            }
-//            mAnimDrawableArm.start();
+            if(!mAnimDrawableArm.isRunning()) {
+                mAnimDrawableArm.run();
+            }
+            mAnimDrawableArm.start();
         } else if (state == 0) {
             if (isChange) {
                 isChange = false;
@@ -194,7 +194,7 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
             }else if(mFloatCelestialBody != null) {
                 mFloatCelestialBody.setViewFloat();
             }
-//            mAnimDrawableArm.stop();
+            mAnimDrawableArm.stop();
 //            mAnimDrawableArm.unscheduleSelf(mAnimDrawableArm);
 
         }

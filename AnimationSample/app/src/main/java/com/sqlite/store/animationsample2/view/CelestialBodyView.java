@@ -92,6 +92,7 @@ public class CelestialBodyView {
     public void initImageView(Activity context){
         mIvCelestial = new ImageView(context);
         mIvCelestial.setImageResource(mResID);
+//        loadImage(mIvCelestial, mResID);
 //        Display display = context.getWindowManager().getDefaultDisplay();
 //        loadImage(mIvCelestial, mResID, display.getWidth(), display.getHeight());
         mIvCelestial.setScaleType(ImageView.ScaleType.MATRIX);
@@ -129,7 +130,6 @@ public class CelestialBodyView {
         if(mFloatAnimator != null && mFloatAnimator.isRunning()) {
             mFloatAnimator.cancel();
             mFloatAnimator.end();
-            Log.i("MainActivity", "stop animator success");
         }
     }
 
@@ -156,8 +156,8 @@ public class CelestialBodyView {
         return mIvCelestial;
     }
 
-//    private void loadImage(ImageView imageView, int resId, int screenWidth, int screenHeight){
-//        BitmapFactory.Options options = new BitmapFactory.Options();
+    private void loadImage(ImageView imageView, int resId){
+        BitmapFactory.Options options = new BitmapFactory.Options();
 //        options.inJustDecodeBounds = true;
 //        BitmapFactory.decodeResource(imageView.getResources(), resId, options);
 //        int originalWidth = options.outWidth;
@@ -170,14 +170,14 @@ public class CelestialBodyView {
 //        while (totalPixels / (scale * scale) > totalReqPixelsCap) {
 //            scale++;
 //        }
-//        options.inJustDecodeBounds = false;
-//        options.inSampleSize = scale;
-//        options.inScaled = true;
-//        options.inPreferredConfig = Bitmap.Config.ALPHA_8;
-//        Bitmap bitmap = BitmapFactory.decodeResource(imageView.getResources(), resId, options);
-//        imageView.setImageBitmap(bitmap);
-//        bitmap = null;
-//    }
+        options.inJustDecodeBounds = false;
+        options.inSampleSize = 1;
+        options.inScaled = true;
+        options.inPreferredConfig = Bitmap.Config.ALPHA_8;
+        Bitmap bitmap = BitmapFactory.decodeResource(imageView.getResources(), resId, options);
+        imageView.setImageBitmap(bitmap);
+        bitmap = null;
+    }
 
     public void flyInitView(){
         mMatrix = new Matrix((mIvCelestial.getImageMatrix()));

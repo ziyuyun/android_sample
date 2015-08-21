@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<animation-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!--<item android:drawable="@drawable/baidong1" android:duration="100"/>-->
+    <!--<item android:drawable="@drawable/baidong2" android:duration="100"/>-->
+    <item android:drawable="@drawable/baidong3" android:duration="100"/>
+    <!--<item android:drawable="@drawable/baidong4" android:duration="100"/>-->
+    <!--<item android:drawable="@drawable/baidong5" android:duration="100"/>-->
+    <item android:drawable="@drawable/baidong6" android:duration="100"/>
+    <!--<item android:drawable="@drawable/baidong7" android:duration="100"/>-->
+    <!--<item android:drawable="@drawable/baidong8" android:duration="100"/>-->
+    <item android:drawable="@drawable/baidong9" android:duration="100"/>
+    <!--<item android:drawable="@drawable/baidong10" android:duration="100"/>-->
+    <!--<item android:drawable="@drawable/baidong11" android:duration="100"/>-->
+    <item android:drawable="@drawable/baidong12" android:duration="100"/>
+    <!--<item android:drawable="@drawable/baidong13" android:duration="100"/>-->
+    <!--<item android:drawable="@drawable/baidong14" android:duration="100"/>-->
+</animation-list>

@@ -7,6 +7,7 @@ import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.graphics.Path;
 import android.graphics.PathMeasure;
+import android.graphics.drawable.AnimationDrawable;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
@@ -51,6 +52,8 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
     private ImageView mIvPurpleLight;       //紫光图
     private ImageView mIvStarA;             //A点星星图
     private ImageView mIvStarB;             //B点星星图
+    private ImageView mIvArm;               //手臂图
+    private AnimationDrawable mAnimDrawableArm;
     private boolean isChange = false;       //viewpager是否已经切换
 
     private int[] yOffsetArray;    //Y轴偏移的数值数组，分别表示A1,A2,A3,A4的偏移点
@@ -135,6 +138,7 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
         viewIDs.add(R.drawable.text5);
         MyViewPagerAdapter adapter = new MyViewPagerAdapter(viewIDs, this);
         mViewPager.setAdapter(adapter);
+        mAnimDrawableArm = (AnimationDrawable) mIvArm.getDrawable();
     }
 
     @Override
@@ -157,6 +161,10 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
             if(mFloatCelestialBody != null){
                 mFloatCelestialBody.stopFloatAnimator();
             }
+            if(!mAnimDrawableArm.isRunning()) {
+                mAnimDrawableArm.run();
+            }
+            mAnimDrawableArm.start();
         } else if (state == 0) {
             if (isChange) {
                 isChange = false;
@@ -174,8 +182,8 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
                     changeStateLeft();
                 } else {
                     //如果飞行天体不为空，则销毁
-                    if(mFlyCelestialBody != null){
-                        destroyItem(mFlyCelestialBody);
+                    if(mFloatCelestialBody != null){
+                        destroyItem(mFloatCelestialBody);
                     }
                     //当前上移的天体成为浮动天体
                     mFloatCelestialBody = mBottomCelestialBody;
@@ -187,6 +195,9 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
             if(mFloatCelestialBody != null) {
                 mFloatCelestialBody.setViewFloat();
             }
+            mAnimDrawableArm.stop();
+//            mAnimDrawableArm.unscheduleSelf(mAnimDrawableArm);
+
         }
     }
 
@@ -201,6 +212,7 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
             view.setImageBitmap(null);
             view.destroyDrawingCache();
             view = null;
+            System.gc();
         }
     }
     /**
@@ -286,6 +298,7 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
         mIvPurpleLight = (ImageView) findViewById(R.id.iv_purple_light);
         mIvStarA = (ImageView) findViewById(R.id.iv_stars_A);
         mIvStarB = (ImageView) findViewById(R.id.iv_stars_B);
+        mIvArm = (ImageView) findViewById(R.id.iv_baidong);
         mCelestialViews = new ArrayList<CelestialBodyView>();
         mCelestialViews.add(new CelestialBodyView(this,leftPointList, R.drawable.pic1, "pic1"));    //左边轨迹飞行
         mCelestialViews.add(new CelestialBodyView(this, leftPointList, R.drawable.pic2, "pic2"));   //左边轨迹飞行

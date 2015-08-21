@@ -51,6 +51,7 @@
         android:layout_height="match_parent"
         android:scaleType="fitXY"
         android:src="@drawable/background"
+        android:visibility="gone"
         />
     <ImageButton
         android:id="@+id/btn_land"

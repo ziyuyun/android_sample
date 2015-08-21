@@ -138,7 +138,7 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
         viewIDs.add(R.drawable.text5);
         MyViewPagerAdapter adapter = new MyViewPagerAdapter(viewIDs, this);
         mViewPager.setAdapter(adapter);
-        mAnimDrawableArm = (AnimationDrawable) mIvArm.getDrawable();
+//        mAnimDrawableArm = (AnimationDrawable) mIvArm.getDrawable();
     }
 
     @Override
@@ -161,10 +161,10 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
             if(mFloatCelestialBody != null){
                 mFloatCelestialBody.stopFloatAnimator();
             }
-            if(!mAnimDrawableArm.isRunning()) {
-                mAnimDrawableArm.run();
-            }
-            mAnimDrawableArm.start();
+//            if(!mAnimDrawableArm.isRunning()) {
+//                mAnimDrawableArm.run();
+//            }
+//            mAnimDrawableArm.start();
         } else if (state == 0) {
             if (isChange) {
                 isChange = false;
@@ -191,11 +191,10 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
                     mBottomCelestialBody = null;
                     changeStateRight();
                 }
-            }
-            if(mFloatCelestialBody != null) {
+            }else if(mFloatCelestialBody != null) {
                 mFloatCelestialBody.setViewFloat();
             }
-            mAnimDrawableArm.stop();
+//            mAnimDrawableArm.stop();
 //            mAnimDrawableArm.unscheduleSelf(mAnimDrawableArm);
 
         }
@@ -320,7 +319,7 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
         CPoint p5 = new CPoint(dp2Px(196), dp2Px(319));
         CPoint p6 = new CPoint(dp2Px(228), dp2Px(385));
         CPoint p7 = new CPoint(dp2Px(221), dp2Px(438));
-        CPoint p8 = new CPoint(screenWidth / 2,1036);
+        CPoint p8 = new CPoint(screenWidth / 2,dp2Px(553));
         leftPointList = new ArrayList<CPoint>();
         leftPointList.add(p0);
         leftPointList.add(p1);
@@ -331,6 +330,7 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
         leftPointList.add(p6);
         leftPointList.add(p7);
         leftPointList.add(p8);
+        Log.i("MainActivity", "y="+px2Dp(p8.y));
     }
 
     protected void initRightPath(){
@@ -353,7 +353,8 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
         CPoint lastP1 = new CPoint(dp2Px(219), dp2Px(265));//new CPoint(410, 496);
         CPoint lastP2 = new CPoint(dp2Px(177), dp2Px(399));//new CPoint(332, 749);
         CPoint lastP3 = new CPoint(dp2Px(334), dp2Px(197));//new CPoint(626, 370);
-        CPoint lastP4 = new CPoint(dp2Px(207), dp2Px(380));//new CPoint(388, 712);
+//        CPoint lastP4 = new CPoint(dp2Px(207), dp2Px(380));//new CPoint(388, 712);
+        CPoint lastP4 = new CPoint(screenWidth / 2, dp2Px(380));
         lastPointList.add(lastP0);
         lastPointList.add(lastP1);
         lastPointList.add(lastP2);

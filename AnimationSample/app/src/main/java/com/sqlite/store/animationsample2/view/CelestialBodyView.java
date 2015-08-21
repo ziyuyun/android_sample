@@ -91,8 +91,8 @@ public class CelestialBodyView {
 
     public void initImageView(Activity context){
         mIvCelestial = new ImageView(context);
-        mIvCelestial.setImageResource(mResID);
-//        loadImage(mIvCelestial, mResID);
+//        mIvCelestial.setImageResource(mResID);
+        loadImage(mIvCelestial, mResID);
 //        Display display = context.getWindowManager().getDefaultDisplay();
 //        loadImage(mIvCelestial, mResID, display.getWidth(), display.getHeight());
         mIvCelestial.setScaleType(ImageView.ScaleType.MATRIX);

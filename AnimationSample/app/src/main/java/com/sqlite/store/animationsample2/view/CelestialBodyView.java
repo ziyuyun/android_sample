@@ -11,6 +11,7 @@ import android.graphics.Path;
 import android.graphics.PathMeasure;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.util.Log;
 import android.view.Display;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
@@ -35,7 +36,7 @@ public class CelestialBodyView {
     private PathUtil.CPoint mStopPoint;       //天体前景停靠点
     private List<PathUtil.CPoint> mPathPointList;//天体Bezier曲线路径控制点集合
     private ObjectAnimator mFloatAnimator;      //天体悬浮动画
-
+    private int mResID;
 
     /**
      * 天体飞行（飞近/飞远）
@@ -81,21 +82,19 @@ public class CelestialBodyView {
         view.setY(lty);
     }
 
-    public CelestialBodyView(Activity context, List<PathUtil.CPoint> pathPointList, int resId) {
+    public CelestialBodyView(Activity context, List<PathUtil.CPoint> pathPointList, int resId, String tag) {
         this.mPathPointList = pathPointList;
         initPath(pathPointList);
-        initImageView(context, resId);
+        this.mResID = resId;
+        //initImageView(context, resId);
     }
 
-    private void initImageView(Activity context, int resId){
+    public void initImageView(Activity context){
         mIvCelestial = new ImageView(context);
-//        mIvCelestial.setImageResource(resId);
-        Display display = context.getWindowManager().getDefaultDisplay();
-        loadImage(mIvCelestial, resId, display.getWidth(), display.getHeight());
+        mIvCelestial.setImageResource(mResID);
+//        Display display = context.getWindowManager().getDefaultDisplay();
+//        loadImage(mIvCelestial, mResID, display.getWidth(), display.getHeight());
         mIvCelestial.setScaleType(ImageView.ScaleType.MATRIX);
-        mMatrix = new Matrix((mIvCelestial.getImageMatrix()));
-        mMatrix.setScale(.0f, .0f);
-        mIvCelestial.setImageMatrix(mMatrix);
     }
 
 
@@ -129,6 +128,8 @@ public class CelestialBodyView {
     public void stopFloatAnimator(){
         if(mFloatAnimator != null && mFloatAnimator.isRunning()) {
             mFloatAnimator.cancel();
+            mFloatAnimator.end();
+            Log.i("MainActivity", "stop animator success");
         }
     }
 
@@ -155,26 +156,48 @@ public class CelestialBodyView {
         return mIvCelestial;
     }
 
-    private void loadImage(ImageView imageView, int resId, int screenWidth, int screenHeight){
-        BitmapFactory.Options options = new BitmapFactory.Options();
-        options.inJustDecodeBounds = true;
-        BitmapFactory.decodeResource(imageView.getResources(), resId, options);
-        int originalWidth = options.outWidth;
-        int originalHeight = options.outHeight;
-        int scale = Math.min(Math.round((float)originalHeight/screenHeight), Math.round((float)originalWidth/screenWidth));
-        final float totalPixels = originalWidth * originalHeight;
+//    private void loadImage(ImageView imageView, int resId, int screenWidth, int screenHeight){
+//        BitmapFactory.Options options = new BitmapFactory.Options();
+//        options.inJustDecodeBounds = true;
+//        BitmapFactory.decodeResource(imageView.getResources(), resId, options);
+//        int originalWidth = options.outWidth;
+//        int originalHeight = options.outHeight;
+//        int scale = Math.min(Math.round((float)originalHeight/screenHeight), Math.round((float)originalWidth/screenWidth));
+//        final float totalPixels = originalWidth * originalHeight;
+//
+//        final float totalReqPixelsCap = screenWidth * screenHeight * 2;
+//
+//        while (totalPixels / (scale * scale) > totalReqPixelsCap) {
+//            scale++;
+//        }
+//        options.inJustDecodeBounds = false;
+//        options.inSampleSize = scale;
+//        options.inScaled = true;
+//        options.inPreferredConfig = Bitmap.Config.ALPHA_8;
+//        Bitmap bitmap = BitmapFactory.decodeResource(imageView.getResources(), resId, options);
+//        imageView.setImageBitmap(bitmap);
+//        bitmap = null;
+//    }
 
-        final float totalReqPixelsCap = screenWidth * screenHeight * 2;
-
-        while (totalPixels / (scale * scale) > totalReqPixelsCap) {
-            scale++;
-        }
-        options.inJustDecodeBounds = false;
-        options.inSampleSize = scale;
-        options.inScaled = true;
-        options.inPreferredConfig = Bitmap.Config.ALPHA_8;
-        Bitmap bitmap = BitmapFactory.decodeResource(imageView.getResources(), resId, options);
-        imageView.setImageBitmap(bitmap);
+    public void flyInitView(){
+        mMatrix = new Matrix((mIvCelestial.getImageMatrix()));
+        mMatrix.setScale(.0f, .0f);
+        mIvCelestial.setImageMatrix(mMatrix);
     }
 
+    public void bottomInitView(){
+        mMatrix = new Matrix((mIvCelestial.getImageMatrix()));
+        mMatrix.setScale(1.0f, 1.0f);
+        mIvCelestial.setImageMatrix(mMatrix);
+    }
+
+    public void bottomSetSize(){
+        Drawable drawable = mIvCelestial.getDrawable();
+        Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
+        mIvCelestial.setDrawingCacheEnabled(false);
+        FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) mIvCelestial.getLayoutParams();
+        layoutParams.height = bitmap.getHeight();
+        layoutParams.width = bitmap.getWidth();
+        mIvCelestial.setLayoutParams(layoutParams);
+    }
 }

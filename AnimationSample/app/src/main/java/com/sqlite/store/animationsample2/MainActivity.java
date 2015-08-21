@@ -60,6 +60,8 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
     private CelestialBodyView mFloatCelestialBody;      //当前浮动天体
     private CelestialBodyView mFlyCelestialBody;
     private CelestialBodyView mMoveUpCelestialBody;
+    private CelestialBodyView mBottomCelestialBody;
+    private CelestialBodyAdapter mCeleAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -159,10 +161,26 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
             if (isChange) {
                 isChange = false;
                 if (left) {
+                    //当前底部天体如果不为空，则销毁
+                    //浮动天体销毁
+                    if(mFloatCelestialBody != null) {
+                        destroyItem(mFloatCelestialBody);
+                    }
+                    //当前飞行的天体转换为浮动天体
                     mFloatCelestialBody = mFlyCelestialBody;
+                    mFloatCelestialBody.setViewFloat();
+                    mFlyCelestialBody = null;
+                    mBottomCelestialBody = null;
                     changeStateLeft();
                 } else {
-                    mFloatCelestialBody = mMoveUpCelestialBody;
+                    //如果飞行天体不为空，则销毁
+                    if(mFlyCelestialBody != null){
+                        destroyItem(mFlyCelestialBody);
+                    }
+                    //当前上移的天体成为浮动天体
+                    mFloatCelestialBody = mBottomCelestialBody;
+                    mFloatCelestialBody.setViewFloat();
+                    mBottomCelestialBody = null;
                     changeStateRight();
                 }
             }
@@ -172,7 +190,19 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
         }
     }
 
-
+    /**
+     * 销毁天体view
+     * @param viewItem
+     */
+    private void destroyItem(CelestialBodyView viewItem){
+        if(viewItem != null){
+            ImageView view = viewItem.getView();
+            mfLayoutContainer.removeView(view);
+            view.setImageBitmap(null);
+            view.destroyDrawingCache();
+            view = null;
+        }
+    }
     /**
      * 左滑动
      */
@@ -185,9 +215,11 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
             backgroundChangeLeft(interpolated);
             if(position<mCelestialViews.size() - 1) {//未到达最后一页
                 //当前位置的天体下移，下一个天体飞近
-                mCelestialViews.get(position).moveDown(interpolated);
-                mFlyCelestialBody = mCelestialViews.get(position + 1);
+                if(mFlyCelestialBody == null) {
+                    mFlyCelestialBody = mCeleAdapter.getFlyingView(mfLayoutContainer, position);
+                }
                 mFlyCelestialBody.flying(interpolated);
+                mFloatCelestialBody.moveDown(interpolated);
             }
         }
     }
@@ -207,10 +239,13 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
             backgroundChangeRight(interpolated);
             if(position>=0){
                 //前一个位置天体飞远，当前位置天体上移
-                mFlyCelestialBody = mCelestialViews.get(position+1);
-                mFlyCelestialBody.flying(1-interpolated);
-                mMoveUpCelestialBody = mCelestialViews.get(position);
-                mMoveUpCelestialBody.moveUp(interpolated);
+                //当前Bottom位置的天体上移
+                if(mBottomCelestialBody == null) {
+                    mBottomCelestialBody = mCeleAdapter.getBottomView(mfLayoutContainer, position);
+                }
+                mBottomCelestialBody.moveUp(interpolated);
+                //当前浮动的天体飞远
+                mFloatCelestialBody.flying(1-interpolated);
             }
         }
     }
@@ -252,14 +287,12 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
         mIvStarA = (ImageView) findViewById(R.id.iv_stars_A);
         mIvStarB = (ImageView) findViewById(R.id.iv_stars_B);
         mCelestialViews = new ArrayList<CelestialBodyView>();
-        mCelestialViews.add(new CelestialBodyView(this,leftPointList, R.drawable.pic1));    //左边轨迹飞行
-        mCelestialViews.add(new CelestialBodyView(this, leftPointList, R.drawable.pic2));   //左边轨迹飞行
-        mCelestialViews.add(new CelestialBodyView(this, rightPointList, R.drawable.pic3));  //右边轨迹飞行
-        mCelestialViews.add(new CelestialBodyView(this, leftPointList, R.drawable.pic4));   //左边轨迹飞行
-        mCelestialViews.add(new CelestialBodyView(this, lastPointList, R.drawable.pic5));   //最后一张单独的飞行轨迹
-        for (int i= 0;i<mCelestialViews.size();i++){
-            mfLayoutContainer.addView(mCelestialViews.get(i).getView());
-        }
+        mCelestialViews.add(new CelestialBodyView(this,leftPointList, R.drawable.pic1, "pic1"));    //左边轨迹飞行
+        mCelestialViews.add(new CelestialBodyView(this, leftPointList, R.drawable.pic2, "pic2"));   //左边轨迹飞行
+        mCelestialViews.add(new CelestialBodyView(this, rightPointList, R.drawable.pic3, "pic3"));  //右边轨迹飞行
+        mCelestialViews.add(new CelestialBodyView(this, leftPointList, R.drawable.pic4, "pic4"));   //左边轨迹飞行
+        mCelestialViews.add(new CelestialBodyView(this, lastPointList, R.drawable.pic5, "pic5"));   //最后一张单独的飞行轨迹
+        mCeleAdapter = new CelestialBodyAdapter(mCelestialViews, this);
     }
 
     /**
@@ -322,14 +355,16 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
     protected void initImage() {
         mFloatCelestialBody = mCelestialViews.get(0);
         interpolated = 1.0f;
+        mFloatCelestialBody = mCeleAdapter.getFloatView(mfLayoutContainer, 0);
         mfLayoutContainer.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             boolean isFirst = true;//默认调用两次，这里只让它执行一次回调
+
             @Override
             public void onGlobalLayout() {
                 if (isFirst) {
                     isFirst = false;
                     //设置第一个天体在停靠点浮动
-                    mCelestialViews.get(0).setViewFloat();
+                    mFloatCelestialBody.setViewFloat();
                 }
             }
         });
